@@ -21,16 +21,15 @@ spring:
       timeout: 300ms # 连接超时时间（毫秒）
 
 minio:
-  endpoint: http://localhost:9000 #MinIO服务所在地址
-  bucketName: mall #存储桶名称
-  accessKey: minioadmin #访问的key
-  secretKey: minioadmin #访问的秘钥
-
+  endpoint: ${MINIO_ENDPOINT:http://localhost:9000} #MinIO服务所在地址
+  bucketName: ${MINIO_BUCKET_NAME:mall}
+  accessKey: ${MINIO_ACCESS_KEY:minioadmin}
+  secretKey: ${MINIO_SECRET_KEY:minioadmin}
 logging:
   level:
     root: info
     com.macro.mall: debug
 
 logstash:
-  host: localhost
+  host: ${LOGSTASH_HOST:localhost}
   enableInnerLog: false
