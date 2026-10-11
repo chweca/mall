@@ -9,3 +9,7 @@ target/
 .settings/
 .classpath
 .project
+# Local editor and backup files
+*.swp
+*.swo
+*.bak-gate9
