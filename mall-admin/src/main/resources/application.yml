@@ -79,3 +79,8 @@ aliyun:
     callback: ${ALIYUN_OSS_CALLBACK:http://localhost:8080/aliyun/oss/callback}  # 文件上传成功后的回调地址
     dir:
       prefix: mall/images/ # 上传文件夹路径前缀
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
