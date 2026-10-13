@@ -113,6 +113,22 @@ Chart 位于 [`deploy/helm/homemall-chart/`](deploy/helm/homemall-chart/)，通�
 
 上述记录只证明这次实验环境的构建、部署和基本健康验证通过；还不等于所有业务链路、压力负载及生产故障场景全部通过。
 
+### 实际运行截图
+
+**Jenkins #21：完整 CI/CD 流水线及 Helm 发布结果**
+
+![Jenkins CI/CD Pipeline](docs/images/jenkins-cicd.png)
+
+**Harbor：前后端镜像版本**
+
+| mall-admin:21 | admin-web:21 |
+| --- | --- |
+| ![Harbor mall-admin](docs/images/harbor-mall-admin.png) | ![Harbor admin-web](docs/images/harbor-admin-web.png) |
+
+**Kubernetes：Deployment 状态及 Helm 发布历史**
+
+![Kubernetes Deployment](docs/images/k8s-deployment.png)
+
 ## 6. 如何查看与验证
 
 > 以下以已具备 Kubernetes、Helm、Harbor、相关 Secret 和业务依赖的实验环境为前提。**不要将项目中的示例地址或镜像仓库 IP 原样用于其他环境。**
