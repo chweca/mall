@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: mall-admin
+  namespace: {{ .Release.Namespace }}
+
+spec:
+{{- if not .Values.mallAdmin.autoscaling.enabled }}
+  replicas: {{ .Values.mallAdmin.replicaCount }}
+{{- end }}
+
+  selector:
+    matchLabels:
+      app: mall-admin
+
+  template:
+    metadata:
+      labels:
+        app: mall-admin
+
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: mall-admin
+                topologyKey: kubernetes.io/hostname
+
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.name }}
+
+      containers:
+        - name: mall-admin
+
+          image: "{{ .Values.mallAdmin.image.repository }}:{{ .Values.mallAdmin.image.tag }}"
+
+          imagePullPolicy: {{ .Values.mallAdmin.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.mallAdmin.service.port }}
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: {{ .Values.mallAdmin.service.port }}
+
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.mallAdmin.service.port }}
+
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: {{ .Values.mallAdmin.service.port }}
+            periodSeconds: 5
+            failureThreshold: 12
+
+          resources:
+            requests:
+              cpu: {{ .Values.mallAdmin.resources.requests.cpu | quote }}
+              memory: {{ .Values.mallAdmin.resources.requests.memory | quote }}
+            limits:
+              cpu: {{ .Values.mallAdmin.resources.limits.cpu | quote }}
+              memory: {{ .Values.mallAdmin.resources.limits.memory | quote }}
+
+          env:
+
+            # MySQL
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:mysql://{{ .Values.externalServices.mysql.host }}:{{ .Values.externalServices.mysql.port }}/{{ .Values.externalServices.mysql.database }}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true"
+
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.externalServices.mysql.username | quote }}
+
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalServices.mysql.secretName }}
+                  key: {{ .Values.externalServices.mysql.passwordKey }}
+
+
+            # Redis
+            - name: SPRING_DATA_REDIS_HOST
+              value: {{ .Values.externalServices.redis.host | quote }}
+
+            - name: SPRING_DATA_REDIS_PORT
+              value: {{ .Values.externalServices.redis.port | quote }}
+
+            - name: SPRING_DATA_REDIS_DATABASE
+              value: {{ .Values.externalServices.redis.database | quote }}
+
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalServices.redis.secretName }}
+                  key: {{ .Values.externalServices.redis.passwordKey }}
+
+            # MinIO
+            - name: MINIO_ENDPOINT
+              value: {{ .Values.minio.endpoint | quote }}
+
+            - name: MINIO_BUCKETNAME
+              value: {{ .Values.minio.bucketName | quote }}
+
+            - name: MINIO_ACCESSKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_ACCESS_KEY
+
+            - name: MINIO_SECRETKEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-secret
+                  key: MINIO_SECRET_KEY
+
+            - name: MINIO_PUBLIC_URL
+              value: {{ .Values.minio.publicUrl | quote }}

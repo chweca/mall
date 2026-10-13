@@ -1,0 +1,17 @@
+{{- if .Values.mallAdmin.pdb.enabled }}
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+
+metadata:
+  name: mall-admin
+  namespace: {{ .Release.Namespace }}
+
+spec:
+  maxUnavailable: {{ .Values.mallAdmin.pdb.maxUnavailable }}
+
+  selector:
+    matchLabels:
+      app: mall-admin
+
+{{- end }}

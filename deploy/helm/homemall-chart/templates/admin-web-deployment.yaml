@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: admin-web
+  namespace: {{ .Release.Namespace }}
+
+spec:
+  replicas: {{ .Values.adminWeb.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: admin-web
+
+  template:
+    metadata:
+      labels:
+        app: admin-web
+
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.name }}
+
+      containers:
+        - name: admin-web
+          image: "{{ .Values.adminWeb.image.repository }}:{{ .Values.adminWeb.image.tag }}"
+          imagePullPolicy: {{ .Values.adminWeb.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.adminWeb.service.port }}

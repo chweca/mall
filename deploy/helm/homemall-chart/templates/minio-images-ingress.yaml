@@ -1,0 +1,21 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+
+metadata:
+  name: minio-images
+  namespace: {{ .Release.Namespace }}
+
+spec:
+  ingressClassName: traefik
+
+  rules:
+    - host: img.chweca.com
+      http:
+        paths:
+          - path: /mall
+            pathType: Prefix
+            backend:
+              service:
+                name: minio-external
+                port:
+                  number: 9000

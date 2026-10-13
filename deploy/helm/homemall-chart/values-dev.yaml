@@ -1,0 +1,8 @@
+adminWeb:
+  replicaCount: 1
+
+mallAdmin:
+  replicaCount: 1
+
+ingress:
+  host: homemall.test

@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: mall-portal
+  namespace: {{ .Release.Namespace }}
+
+spec:
+  replicas: {{ .Values.mallPortal.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: mall-portal
+
+  template:
+    metadata:
+      labels:
+        app: mall-portal
+
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.name }}
+
+      containers:
+        - name: mall-portal
+          image: "{{ .Values.mallPortal.image.repository }}:{{ .Values.mallPortal.image.tag }}"
+          imagePullPolicy: {{ .Values.mallPortal.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.mallPortal.service.port }}
+
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: "prod"
+
+            - name: SPRING_DATA_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.externalServices.redis.secretName }}
+                  key: {{ .Values.externalServices.redis.passwordKey }}
+
+            # MySQL
+            - name: SPRING_DATASOURCE_USERNAME
+              value: {{ .Values.externalServices.mysql.username | quote }}
+
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-app-secret
+                  key: MYSQL_APP_PASSWORD
+
+            # Druid
+            - name: DRUID_LOGIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: druid-login-secret
+                  key: DRUID_LOGIN_PASSWORD
+
+            # RabbitMQ
+            - name: SPRING_RABBITMQ_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
+
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password

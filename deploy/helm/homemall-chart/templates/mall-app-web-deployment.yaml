@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: mall-app-web
+  namespace: {{ .Release.Namespace }}
+
+spec:
+  replicas: {{ .Values.mallAppWeb.replicaCount }}
+
+  selector:
+    matchLabels:
+      app: mall-app-web
+
+  template:
+    metadata:
+      labels:
+        app: mall-app-web
+
+    spec:
+      imagePullSecrets:
+        - name: {{ .Values.imagePullSecret.name }}
+
+      containers:
+        - name: mall-app-web
+          image: "{{ .Values.mallAppWeb.image.repository }}:{{ .Values.mallAppWeb.image.tag }}"
+          imagePullPolicy: {{ .Values.mallAppWeb.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: {{ .Values.mallAppWeb.service.port }}

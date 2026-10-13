@@ -1,0 +1,8 @@
+adminWeb:
+  replicaCount: 2
+
+mallAdmin:
+  replicaCount: 2
+
+ingress:
+  host: homemall.example.com
