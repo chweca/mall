@@ -1,6 +1,14 @@
 pipeline {
     agent { label 'git-test' }
 
+    parameters {
+        booleanParam(
+            name: 'DEPLOY_TO_K8S',
+            defaultValue: false,
+            description: 'Deploy to Kubernetes'
+        )
+    }
+
     stages {
         stage('Checkout Backend') {
             steps {
@@ -90,25 +98,6 @@ pipeline {
             }
         }
 
-        stage('Build Frontend') {
-            steps {
-                dir('frontend') {
-                    sh '''
-                        npm install
-                        npm run build
-                    '''
-                }
-            }
-        }
-
-        stage('Check Frontend Artifact') {
-            steps {
-                dir('frontend') {
-                    sh 'ls -lh dist'
-                }
-            }
-        }
-
         stage('Build Frontend Image') {
             steps {
                 dir('frontend') {
@@ -134,6 +123,12 @@ pipeline {
         }
 
         stage('Deploy to Kubernetes') {
+
+            when {
+                beforeAgent true
+                expression { params.DEPLOY_TO_K8S }
+            }
+
             agent { label 'k8s-master' }
 
             steps {
