@@ -1,5 +1,9 @@
 pipeline {
     agent { label 'git-test' }
+   
+    options {
+        skipDefaultCheckout(true)
+    }
 
     parameters {
         booleanParam(
