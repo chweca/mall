@@ -1,214 +1,144 @@
-# mall
+# HomeMall Cloud-Native DevOps
 
-<p>
-  <a href="#公众号"><img src="http://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/%E5%85%AC%E4%BC%97%E5%8F%B7-macrozheng-blue.svg" alt="公众号"></a>
-  <a href="#公众号"><img src="http://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/%E4%BA%A4%E6%B5%81-%E5%BE%AE%E4%BF%A1%E7%BE%A4-2BA245.svg" alt="交流"></a>
-  <a href="https://github.com/macrozheng/mall-learning"><img src="http://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/%E5%AD%A6%E4%B9%A0%E6%95%99%E7%A8%8B-mall--learning-green.svg" alt="学习教程"></a>
-  <a href="https://github.com/macrozheng/mall-swarm"><img src="http://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/Cloud%E7%89%88%E6%9C%AC-mall--swarm-brightgreen.svg" alt="SpringCloud版本"></a>
-  <a href="https://github.com/macrozheng/mall-admin-web"><img src="https://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/%E5%90%8E%E5%8F%B0%E7%AE%A1%E7%90%86%E7%B3%BB%E7%BB%9F-mall--admin--web-green.svg" alt="后台管理系统"></a>
-  <a href="https://github.com/macrozheng/mall-app-web"><img src="https://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/%E5%89%8D%E5%8F%B0%E5%95%86%E5%9F%8E%E9%A1%B9%E7%9B%AE-mall--app--web-green.svg" alt="前台商城项目"></a>
-  <a href="https://gitee.com/macrozheng/mall"><img src="http://macro-oss.oss-cn-shenzhen.aliyuncs.com/mall/badge/%E7%A0%81%E4%BA%91-%E9%A1%B9%E7%9B%AE%E5%9C%B0%E5%9D%80-orange.svg" alt="码云"></a>
-</p>
+> 基于开源电商项目 [macrozheng/mall](https://github.com/macrozheng/mall) 的 **Kubernetes 云原生部署与 DevOps 工程实践**。
+>
+> 本仓库侧重展示本人对现有业务系统的**容器化、基础设施部署、Helm 配置管理、Jenkins CI/CD、服务可用性和故障排查**实践；原有电商业务功能并非本人从零开发。
 
-## 友情提示
+## 1. 项目目标与范围
 
-> 1. **快速体验项目**：[在线访问地址](https://www.macrozheng.com/admin/index.html) 。
-> 2. **全套学习教程**：[《mall学习教程》](https://www.macrozheng.com) 。
-> 3. **视频教程**：[《mall视频教程》](https://www.macrozheng.com/mall/catalog/mall_video.html) 。
-> 4. **微服务版本**：基于Spring Cloud Alibaba的项目：[mall-swarm](https://github.com/macrozheng/mall-swarm) 。
-> 5. **分支说明**：`master`分支基于Spring Boot 3.5+JDK 17，`dev-v2`分支基于Spring Boot 2.7+JDK 8。
+将已有 Spring Boot 电商系统部署到自建 Kubernetes 集群，并建立从 GitHub 源码到 Harbor 镜像仓库、再到 Helm/Kubernetes 的可验证交付流程。
 
-## 前言
+**本人实践范围**
 
-`mall`项目致力于打造一个完整的电商系统，采用现阶段主流技术实现。
+- 在 PVE 实验环境部署和维护 Kubernetes 集群，使用 Containerd、Flannel、CoreDNS。
+- 为管理后台和商城相关组件编写/维护 Dockerfile、Kubernetes 资源和 Helm Chart；使用 Traefik Ingress 暴露 HTTP 服务。
+- 为 `mall-admin` 配置多副本、readiness/liveness/startup 探针，验证滚动更新和 Service 访问。
+- 在 Jenkins 中配置多 Agent 流水线，完成 Maven 构建、Docker 镜像构建、Harbor 推送、参数化 Helm 部署。
+- 使用 Kubernetes Secret/环境变量管理**部分**应用连接凭据，降低在应用配置中直接保存明文密码的风险。
+- 接入/部署 Prometheus、Grafana 相关监控组件，开展应用可观测性实践。
+- 记录 Git 网络超时、Agent 重复检出、发布配置对比等真实排障案例。
 
-## 项目文档
+**范围说明**：该仓库并非从零编写电商业务，也不宣称已实现生产级高可用、全量自动回滚或全链路安全审计。数据库、存储与网络依赖需要按照实际环境单独准备。
 
-文档地址：[https://www.macrozheng.com](https://www.macrozheng.com)
+## 2. 技术栈
 
-## 项目介绍
+| 分类 | 采用的技术/组件 |
+| --- | --- |
+| 基础环境 | Proxmox VE、Rocky Linux、Linux 网络 |
+| 容器与编排 | Docker、Containerd、Kubernetes v1.30、Flannel |
+| 流量入口 | Traefik、Ingress、Kubernetes Service、CoreDNS |
+| 发布与配置 | Helm Chart、ConfigMap/Secret、Deployment、StatefulSet |
+| CI/CD | GitHub、Jenkins Controller + 多 Agent、Maven、Harbor |
+| 监控 | Prometheus、Grafana、Spring Boot Actuator / Micrometer |
+| 业务依赖 | MySQL、Redis、MinIO；部分业务模块包含其他外部依赖 |
 
-`mall`项目是一套电商系统，包括前台商城系统及后台管理系统，基于SpringBoot+MyBatis实现，采用Docker容器化部署。前台商城系统包含首页门户、商品推荐、商品搜索、商品展示、购物车、订单流程、会员中心、客户服务、帮助中心等模块。后台管理系统包含商品管理、订单管理、会员管理、促销管理、运营管理、内容管理、统计报表、财务管理、权限管理、设置等模块。
+## 3. 系统架构
 
-### 项目演示
+**运行时业务访问链路（自上而下）**
 
-#### 后台管理系统
-
-前端项目`mall-admin-web`地址：https://github.com/macrozheng/mall-admin-web
-
-项目演示地址： [https://www.macrozheng.com/admin/index.html](https://www.macrozheng.com/admin/index.html)  
-
-![后台管理系统功能演示](./document/resource/mall_admin_show.png)
-
-#### 前台商城系统
-
-前端项目`mall-app-web`地址：https://github.com/macrozheng/mall-app-web
-
-项目演示地址（将浏览器切换为手机模式效果更佳）：[https://www.macrozheng.com/app/](https://www.macrozheng.com/app/)
-
-![前台商城系统功能演示](./document/resource/re_mall_app_show.jpg)
-
-### 组织结构
-
-```
-mall
-├── mall-common -- 工具类及通用代码
-├── mall-mbg -- MyBatisGenerator生成的数据库操作代码
-├── mall-security -- SpringSecurity封装公用模块
-├── mall-admin -- 后台商城管理系统接口
-├── mall-search -- 基于Elasticsearch的商品搜索系统
-├── mall-portal -- 前台商城系统接口
-└── mall-demo -- 框架搭建时的测试代码
+```mermaid
+flowchart TD
+    U[用户浏览器] --> IN[Traefik / Ingress]
+    IN --> WS[前端 Service]
+    WS --> WP[admin-web / mall-app-web Pod]
+    WP -->|后端 API 请求| AS[mall-admin / mall-portal Service]
+    AS --> AP[Spring Boot 后端 Pod]
+    AP --> DB[(MySQL)]
+    AP --> RD[(Redis)]
+    AP --> MO[(MinIO 对象存储)]
 ```
 
-### 技术选型
+> 图为业务访问与核心依赖的概览，不表示所有页面的每个请求都依次经过全部组件，也不表示所有依赖均部署为 Kubernetes Pod。
 
-#### 后端技术
+**CI/CD 发布链路**
 
-| 技术                 | 说明                | 官网                                           |
-| -------------------- | ------------------- | ---------------------------------------------- |
-| SpringBoot           | Web应用开发框架      | https://spring.io/projects/spring-boot         |
-| SpringSecurity       | 认证和授权框架      | https://spring.io/projects/spring-security     |
-| MyBatis              | ORM框架             | http://www.mybatis.org/mybatis-3/zh/index.html |
-| MyBatisGenerator     | 数据层代码生成器     | http://www.mybatis.org/generator/index.html    |
-| Elasticsearch        | 搜索引擎            | https://github.com/elastic/elasticsearch       |
-| RabbitMQ             | 消息队列            | https://www.rabbitmq.com/                      |
-| Redis                | 内存数据存储         | https://redis.io/                              |
-| MongoDB              | NoSql数据库         | https://www.mongodb.com                        |
-| LogStash             | 日志收集工具        | https://github.com/elastic/logstash            |
-| Kibana               | 日志可视化查看工具  | https://github.com/elastic/kibana              |
-| Nginx                | 静态资源服务器      | https://www.nginx.com/                         |
-| Docker               | 应用容器引擎        | https://www.docker.com                         |
-| Jenkins              | 自动化部署工具      | https://github.com/jenkinsci/jenkins           |
-| Druid                | 数据库连接池        | https://github.com/alibaba/druid               |
-| OSS                  | 对象存储            | https://github.com/aliyun/aliyun-oss-java-sdk  |
-| MinIO                | 对象存储            | https://github.com/minio/minio                 |
-| JWT                  | JWT登录支持         | https://github.com/jwtk/jjwt                   |
-| Lombok               | Java语言增强库      | https://github.com/rzwitserloot/lombok         |
-| Hutool               | Java工具类库        | https://github.com/looly/hutool                |
-| PageHelper           | MyBatis物理分页插件 | http://git.oschina.net/free/Mybatis_PageHelper |
-| SpringDoc            | API文档生成工具      | https://github.com/springdoc/springdoc-openapi |
-| Hibernator-Validator | 验证框架            | http://hibernate.org/validator                 |
+```mermaid
+flowchart TD
+    GH[GitHub：源码 + Jenkinsfile + Helm Chart] --> JC[Jenkins Controller：读取流水线并调度]
+    JC --> AG[git-test Agent：Maven / Docker]
+    AG --> HA[(Harbor：版本化镜像)]
+    AG --> ST[stash：暂存 Helm Chart]
+    ST --> KG[k8s-master Agent：unstash + Helm]
+    HA --> KG
+    KG --> K8[Kubernetes：滚动更新 Deployment]
+    K8 --> V[rollout 状态 + Pod 就绪 + HTTP 验证]
+```
 
-#### 前端技术
+📖 更多职责划分与调用过程见 [架构说明](docs/architecture.md)。
 
-| 技术       | 说明                  | 官网                                   |
-| ---------- | --------------------- | -------------------------------------- |
-| Vue        | 前端框架              | https://vuejs.org/                     |
-| Vue-router | 路由框架              | https://router.vuejs.org/              |
-| Vuex       | 全局状态管理框架      | https://vuex.vuejs.org/                |
-| Element    | 前端UI框架            | https://element.eleme.io               |
-| Axios      | 前端HTTP框架          | https://github.com/axios/axios         |
-| v-charts   | 基于Echarts的图表框架 | https://v-charts.js.org/               |
-| Js-cookie  | cookie管理工具        | https://github.com/js-cookie/js-cookie |
-| nprogress  | 进度条控件            | https://github.com/rstacruz/nprogress  |
+## 4. 关键工程实践
 
-#### 移动端技术
+### 4.1 Helm 管理应用
 
-| 技术         | 说明             | 官网                                    |
-| ------------ | ---------------- | --------------------------------------- |
-| Vue          | 核心前端框架     | https://vuejs.org                       |
-| Vuex         | 全局状态管理框架 | https://vuex.vuejs.org                  |
-| uni-app      | 移动端前端框架   | https://uniapp.dcloud.io                |
-| mix-mall     | 电商项目模板     | https://ext.dcloud.net.cn/plugin?id=200 |
-| luch-request | HTTP请求框架     | https://github.com/lei-mu/luch-request  |
+Chart 位于 [`deploy/helm/homemall-chart/`](deploy/helm/homemall-chart/)，通过 `values.yaml` 与 `templates/` 管理组件镜像、端口、副本和运行配置。发布前检查配置差异并进行 `helm upgrade --dry-run=server` 验证。
 
-#### 架构图
+### 4.2 Jenkins 参数化 CI/CD
 
-##### 系统架构图
+流水线位于 [`Jenkinsfile`](Jenkinsfile)：
 
-![系统架构图](./document/resource/re_mall_system_arch.jpg)
+1. 显式检出后端代码与前端代码；
+2. Maven 构建后端、Docker 构建前后端镜像；
+3. 使用 Jenkins 构建编号打镜像 Tag 并推送 Harbor；
+4. 通过 `stash/unstash` 将 Helm Chart 从构建 Agent 传至部署 Agent；
+5. `DEPLOY_TO_K8S=false`（默认）仅执行 CI；手动勾选后才执行 Helm 发布和 Rollout 检查。
 
-##### 业务架构图
+通过 `skipDefaultCheckout(true)` 避免 Agent 切换时不必要的自动源码检出。**当前已验证的是手动参数化构建，不代表已接入自动 Webhook。**
 
-![业务架构图](./document/resource/re_mall_business_arch.jpg)
+### 4.3 配置和凭据处理
 
-#### 模块介绍
+- 后端业务配置中的部分数据库、Redis、Druid、RabbitMQ 密码改为环境变量引用。
+- 对应 Kubernetes Deployment 通过 `env.valueFrom.secretKeyRef` 引用 Secret。
+- 新镜像依赖的变量须先在 Kubernetes 中配置齐全，不能仅凭“源码改成 `${...}`”就直接更新镜像。
+- **遗留边界**：旧镜像、Git 历史和外部组件内部账号可能仍有旧凭据；后续应审计并轮换仍有效的密钥。
 
-##### 后台管理系统 `mall-admin`
+## 5. 已验证的发布结果
 
-- 商品管理：[功能结构图-商品.jpg](document/resource/mind_product.jpg)
-- 订单管理：[功能结构图-订单.jpg](document/resource/mind_order.jpg)
-- 促销管理：[功能结构图-促销.jpg](document/resource/mind_sale.jpg)
-- 内容管理：[功能结构图-内容.jpg](document/resource/mind_content.jpg)
-- 用户管理：[功能结构图-用户.jpg](document/resource/mind_member.jpg)
+以下为 **2026-10-13 在个人实验环境中的一次实际验证**，不是持续运行保证：
 
-##### 前台商城系统 `mall-portal`
+| 检查项 | 结果 |
+| --- | --- |
+| Jenkins Pipeline | `#21` SUCCESS |
+| Jenkinsfile 提交 | `304e4d7` |
+| Harbor 镜像版本 | `mall-admin:21`、`admin-web:21` |
+| Helm Release | `homemall`，Revision **33 → 34**，状态 `deployed` |
+| Kubernetes Deployment | `mall-admin` **2/2**、`admin-web` **1/1** 就绪 |
+| 后端 HTTP 检查 | 从 `admin-web` Pod 经 `mall-admin` Service 访问 `/actuator/health`，返回 `status: UP` |
+| 浏览器 | 该次发布后访问正常 |
 
-[功能结构图-前台.jpg](document/resource/mind_portal.jpg)
+上述记录只证明这次实验环境的构建、部署和基本健康验证通过；还不等于所有业务链路、压力负载及生产故障场景全部通过。
 
-#### 开发进度
+## 6. 如何查看与验证
 
-![项目开发进度图](./document/resource/re_mall_dev_flow.jpg)
+> 以下以已具备 Kubernetes、Helm、Harbor、相关 Secret 和业务依赖的实验环境为前提。**不要将项目中的示例地址或镜像仓库 IP 原样用于其他环境。**
 
-## 环境搭建
+```bash
+# 查看命名空间中前后端 Deployment 状态
+kubectl get deployment mall-admin admin-web -n homemall-dev
 
-### 开发工具
+# 查询当前实际镜像版本
+kubectl get deployment mall-admin admin-web -n homemall-dev \
+  -o custom-columns='NAME:.metadata.name,IMAGE:.spec.template.spec.containers[*].image'
 
-| 工具          | 说明                | 官网                                            |
-| ------------- | ------------------- | ----------------------------------------------- |
-| IDEA          | 开发IDE             | https://www.jetbrains.com/idea/download         |
-| RedisDesktop  | redis客户端连接工具 | https://github.com/qishibo/AnotherRedisDesktopManager  |
-| Robomongo     | mongo客户端连接工具 | https://robomongo.org/download                  |
-| SwitchHosts   | 本地host管理        | https://oldj.github.io/SwitchHosts/             |
-| X-shell       | Linux远程连接工具   | http://www.netsarang.com/download/software.html |
-| Navicat       | 数据库连接工具      | http://www.formysql.com/xiazai.html             |
-| PowerDesigner | 数据库设计工具      | http://powerdesigner.de/                        |
-| Axure         | 原型设计工具        | https://www.axure.com/                          |
-| MindMaster    | 思维导图设计工具    | http://www.edrawsoft.cn/mindmaster              |
-| ScreenToGif   | gif录制工具         | https://www.screentogif.com/                    |
-| ProcessOn     | 流程图绘制工具      | https://www.processon.com/                      |
-| PicPick       | 图片处理工具        | https://picpick.app/zh/                         |
-| Snipaste      | 屏幕截图工具        | https://www.snipaste.com/                       |
-| Postman       | API接口调试工具      | https://www.postman.com/                        |
-| Typora        | Markdown编辑器      | https://typora.io/                              |
+# 查看 Helm 发布记录
+helm history homemall -n homemall-dev
 
-### 开发环境
+# 从管理前端容器内，经 Service 查询后端健康状态
+kubectl exec -n homemall-dev deployment/admin-web -- \
+  wget -qO- http://mall-admin:8080/actuator/health
+```
 
-| 工具          | 版本号 | 下载                                                         |
-| ------------- | ------ | ------------------------------------------------------------ |
-| JDK           | 17     | https://www.oracle.com/java/technologies/javase/jdk17-archive-downloads.html |
-| MySQL         | 5.7    | https://www.mysql.com/                                       |
-| Redis         | 7.0    | https://redis.io/download                                    |
-| MongoDB       | 5.0    | https://www.mongodb.com/download-center                      |
-| RabbitMQ      | 3.10.5 | http://www.rabbitmq.com/download.html                        |
-| Nginx         | 1.22   | http://nginx.org/en/download.html                            |
-| Elasticsearch | 7.17.3 | https://www.elastic.co/downloads/elasticsearch               |
-| Logstash      | 7.17.3 | https://www.elastic.co/cn/downloads/logstash                 |
-| Kibana        | 7.17.3 | https://www.elastic.co/cn/downloads/kibana                   |
+完整环境搭建、Secret 注入、镜像仓库认证与部署步骤应另外以环境文档明确列出；**不应将真实口令写入 README 或提交到仓库**。
 
-### 搭建步骤
+## 7. 排障案例与后续优化
 
-> Windows环境部署
+- **Jenkins 获取 GitHub 仓库慢/超时**：使用相同用户对比直连和 Mihomo 代理下载，确认通过代理 Git 传输明显改善。
+- **切换 k8s-master Agent 后 Git Fetch 失败**：排查到默认 Checkout 与已有 `stash/unstash` 文件传递重复，使用 `skipDefaultCheckout(true)` 处理。
+- **Helm 发布前变更审查**：对比运行中 Release 与 GitHub Chart 渲染资源，确认除镜像 Tag 外没有额外非空白文本差异。
 
-- Windows环境搭建请参考：[mall在Windows环境下的部署](https://www.macrozheng.com/mall/deploy/mall_deploy_windows.html);
-- 注意：如果只启动`mall-admin`模块，仅需安装MySQL、Redis即可;
-- 克隆`mall-admin-web`项目，并导入到IDEA中完成编译：[前端项目地址](https://github.com/macrozheng/mall-admin-web);
-- `mall-admin-web`项目的安装及部署请参考：[mall前端项目的安装与部署](https://www.macrozheng.com/mall/deploy/mall_deploy_web.html) 。
+后续计划：补充脱敏后的 Jenkins/Harbor/Kubernetes/Grafana 实际截图、整理独立部署手册、继续完善回滚演练与告警验证。
 
-> Docker环境部署
+## 8. 原项目与许可说明
 
-- 使用虚拟机安装CentOS7.6请参考：[虚拟机安装及使用Linux，看这一篇就够了](https://www.macrozheng.com/tool/linux_install.html);
-- 本项目Docker镜像构建请参考：[使用Maven插件为SpringBoot应用构建Docker镜像](https://www.macrozheng.com/project/maven_docker_fabric8.html);
-- 本项目在Docker容器下的部署请参考：[mall在Linux环境下的部署（基于Docker容器）](https://www.macrozheng.com/mall/deploy/mall_deploy_docker.html);
-- 本项目使用Docker Compose请参考： [mall在Linux环境下的部署（基于Docker Compose）](https://www.macrozheng.com/mall/deploy/mall_deploy_docker_compose.html);
-- 本项目在Linux下的自动化部署请参考：[mall在Linux环境下的自动化部署（基于Jenkins）](https://www.macrozheng.com/mall/deploy/mall_deploy_jenkins.html);
-
-> 相关环境部署
-
-- ELK日志收集系统的搭建请参考：[mall项目ELK日志收集解决方案](https://www.macrozheng.com/project/mall_kibana_start.html);
-- 使用MinIO存储文件请参考：[使用MinIO实现文件存储](https://www.macrozheng.com/project/minio_console_start.html);
-- 读写分离解决方案请参考：[你还在代码里做读写分离么，试试这个中间件吧](https://www.macrozheng.com/project/gaea.html);
-- Redis集群解决方案请参考：[Docker环境下秒建Redis集群](https://www.macrozheng.com/blog/redis_cluster.html) 。
-
-## 公众号
-
-加微信群交流，关注公众号「**macrozheng**」，回复「**加群**」即可。
-
-![公众号图片](./document/resource/qrcode_for_macrozheng_258.jpg)
-
-## 许可证
-
-[Apache License 2.0](https://github.com/macrozheng/mall/blob/master/LICENSE)
-
-Copyright (c) 2018-2026 macrozheng
+- **上游业务项目**：[macrozheng/mall](https://github.com/macrozheng/mall)。本仓库为其 Fork；原项目的 Spring Boot 业务代码、已有模块、文档与资源归其原作者及贡献者。
+- 本仓库中的云原生部署、CI/CD、运行配置和实验复盘属于针对上游代码开展的工程实践。具体差异可通过 Git 提交历史查看。
+- 保留原项目的 [`LICENSE`](LICENSE) 文件；使用与分发时应遵守原项目许可及相关第三方组件许可。
