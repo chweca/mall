@@ -66,6 +66,12 @@ flowchart TD
 
 📖 更多职责划分与调用过程见 [架构说明](docs/architecture.md)。
 
+### 项目文档导航
+
+- [系统架构说明](docs/architecture.md)
+- [部署与验证手册](docs/deployment.md)
+- [真实故障排查复盘](docs/troubleshooting.md)
+
 ## 4. 关键工程实践
 
 ### 4.1 Helm 管理应用
